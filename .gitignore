@@ -5,3 +5,5 @@
 .DS_Store
 /build
 /captures
+/JsonAPI/JsonAPI.iml
+JsonAPI/*.iml

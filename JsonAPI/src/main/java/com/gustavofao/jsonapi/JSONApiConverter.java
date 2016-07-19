@@ -18,7 +18,6 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -194,6 +193,7 @@ public class JSONApiConverter {
     private Resource resourceFromJson(JSONObject jsonObject, HashMap<String, Resource> includes)
             throws JSONException, IllegalAccessException, InstantiationException, ParseException, NoSuchFieldException {
         String typeString = jsonObject.getString("type");
+        Log.d(JSONApiConverter.class.getSimpleName(), "Resource: " + typeString);
         Resource resource = classesIndex.get(typeString).newInstance();
 
         Field idMainField = Resource.class.getDeclaredField("id");
@@ -261,17 +261,17 @@ public class JSONApiConverter {
                                 Log.e("JSONApiConverter", "Type not setted (" + currentField.getType().getName() + ")");
                         } else if (value instanceof Double || value instanceof Float) {
                             if (currentField.getType().equals(float.class) || currentField.getType().equals(Float.class))
-                                currentField.setDouble(resource, (float) value);
+                                currentField.set(resource, value);
                             else if (currentField.getType().equals(double.class) || currentField.getType().equals(Double.class))
-                                currentField.setDouble(resource, (double) value);
+                                currentField.set(resource, value);
                         } else if (value instanceof Integer) {
-                            currentField.setInt(resource, (int) value);
+                            currentField.set(resource, value);
                         } else if (value instanceof Long) {
-                            currentField.setLong(resource, (long) value);
+                            currentField.set(resource, value);
                         } else if (value instanceof Character) {
-                            currentField.setChar(resource, (char) value);
+                            currentField.set(resource, value);
                         } else if (value instanceof Boolean) {
-                            currentField.setBoolean(resource, (boolean) value);
+                            currentField.set(resource, value);
                         } else if (value instanceof JSONObject) {
                             JSONObject json = (JSONObject) value;
                             Map<String, Object> data = new HashMap<>();
@@ -279,7 +279,9 @@ public class JSONApiConverter {
                             Iterator<String> keys = json.keys();
                             while (keys.hasNext()) {
                                 String k = keys.next();
-                                data.put(k, json.get(k));
+                                if (json.get(k) != null && !json.get(k).toString().equals("null")) {
+                                    data.put(k, json.get(k));
+                                }
                             }
 
                             currentField.set(resource, data);
@@ -306,13 +308,13 @@ public class JSONApiConverter {
         //Inicia os relationships
         if (!jsonObject.isNull("relationships")) {
             JSONObject relationships = jsonObject.getJSONObject("relationships");
-            Iterator <String> keys = relationships.keys();
+            Iterator<String> keys = relationships.keys();
             while (keys.hasNext()) {
                 String key = keys.next();
                 JSONObject eachRelation = relationships.getJSONObject(key);
 
                 Object data = eachRelation.get("data");
-                if (fieldsHash.containsKey(key)){
+                if (fieldsHash.containsKey(key)) {
                     Field field = fieldsHash.get(key);
                     Boolean oldAccessible = field.isAccessible();
                     field.setAccessible(true);
@@ -450,7 +452,7 @@ public class JSONApiConverter {
             mainNode.put("data", mainContent);
             if (include.length() > 0)
                 mainNode.put("included", include);
-        } catch (Exception ex){
+        } catch (Exception ex) {
             ex.printStackTrace();
         }
         return mainNode;
@@ -462,7 +464,8 @@ public class JSONApiConverter {
             if (resource.equals(ninstance)) {
                 return new JSONObject();
             }
-        } catch (Exception e) {}
+        } catch (Exception e) {
+        }
 
         List<Field> fields = getFields(resource.getClass());
         JSONObject mainNode = new JSONObject();
@@ -471,7 +474,6 @@ public class JSONApiConverter {
             JSONObject content = new JSONObject();
             JSONObject attributes = new JSONObject();
             JSONObject relationship = new JSONObject();
-            JSONArray include = new JSONArray();
 
             //Processar os dados
             content.put("type", resource.getType());
@@ -540,14 +542,10 @@ public class JSONApiConverter {
                                         relationshipNodeData = relationshipNode.getJSONArray("data");
                                     }
 
-                                    relationshipNodeData.put(getNodeAsRelationship(listItem));
+                                    relationshipNodeData.put(toJsonObject((Resource) listItem).get("data"));
                                     relationshipNode.put("data", relationshipNodeData);
 
                                     relationship.put(fieldName, relationshipNode);
-
-                                    JSONObject obj = getNodeAsInclude(listItem);
-                                    if (obj != null)
-                                        include.put(obj);
                                 }
                             } catch (Exception e) {
                                 e.printStackTrace();
@@ -564,15 +562,15 @@ public class JSONApiConverter {
                         } else if (field.get(resource) instanceof String) {
                             attributes.put(fieldName, String.valueOf(field.get(resource)));
                         } else if (field.get(resource) instanceof Integer) {
-                            attributes.put(fieldName, field.getInt(resource));
+                            attributes.put(fieldName, field.get(resource));
                         } else if (field.get(resource) instanceof Double || field.get(resource) instanceof Float) {
                             attributes.put(fieldName, Double.valueOf(String.valueOf(field.get(resource))));
                         } else if (field.get(resource) instanceof Long) {
-                            attributes.put(fieldName, field.getLong(resource));
+                            attributes.put(fieldName, field.get(resource));
                         } else if (field.get(resource) instanceof Character) {
-                            attributes.put(fieldName, Character.toString(field.getChar(resource)));
+                            attributes.put(fieldName, Character.toString((char) field.get(resource)));
                         } else if (field.get(resource) instanceof Boolean) {
-                            attributes.put(fieldName, field.getBoolean(resource));
+                            attributes.put(fieldName, field.get(resource));
                         } else if (field.get(resource) instanceof Date) {
                             attributes.put(fieldName, dateFormatToServer.format((Date) field.get(resource)).replace(" ", "T"));
                         } else if (field.get(resource) instanceof Map) {
@@ -587,20 +585,14 @@ public class JSONApiConverter {
                             attributes.put(fieldName, obj);
                         } else if (field.get(resource) instanceof Resource) {
                             JSONObject relationshipNode = new JSONObject();
-                            relationshipNode.put("data", getNodeAsRelationship(field.get(resource)));
+                            relationshipNode.put("data", toJsonObject((Resource) field.get(resource)).get("data"));
 
                             relationship.put(fieldName, relationshipNode);
-
-                            JSONObject obj = getNodeAsInclude(field.get(resource));
-                            if (obj != null)
-                                include.put(obj);
                         }
                     } catch (Exception ex) {
                         Log.e("JSONApiConverter", String.format("Failed to pass attribute %s", fieldName));
                     }
                 }
-
-
                 field.setAccessible(oldAccessible);
             }
 
@@ -610,11 +602,7 @@ public class JSONApiConverter {
             if (relationship.length() > 0)
                 content.put("relationships", relationship);
 
-            if (include.length() > 0)
-                mainNode.put("included", include);
-
             mainNode.put("data", content);
-
         } catch (Exception ex) {
             //Tratar erros
             ex.printStackTrace();
@@ -623,96 +611,8 @@ public class JSONApiConverter {
         return mainNode;
     }
 
-    private String getResourceTag(Resource resource) {
-        String type = resource.getType();
-        return (type + "|" + resource.getId());
-    }
-
     private String getResourceTag(JSONObject json) throws JSONException {
         return (json.getString("type") + "|" + json.getString("id"));
-    }
-
-    private JSONObject getNodeAsRelationship(Object resource) throws JSONException, IllegalAccessException {
-        List<Field> fields = getFields(resource.getClass());
-        JSONObject jsonObject = new JSONObject();
-
-        jsonObject.put("type", ((Resource) resource).getType());
-
-        for (Field field : fields) {
-            Boolean oldAccessible = field.isAccessible();
-            field.setAccessible(true);
-            if (field.getAnnotation(Id.class) != null) {
-                jsonObject.put("id", field.get(resource));
-            }
-            field.setAccessible(oldAccessible);
-        }
-
-        return jsonObject;
-    }
-
-    private JSONObject getNodeAsInclude(Object resource) throws JSONException, IllegalAccessException, ParseException {
-        List<Field> fields = getFields(resource.getClass());
-
-        JSONObject content = new JSONObject();
-        JSONObject attributes = new JSONObject();
-        JSONObject relationship = new JSONObject();
-
-        content.put("type", ((Resource) resource).getType());
-
-        for (Field field : fields) {
-            if (Collection.class.isAssignableFrom(field.getType()))
-                continue;
-
-            String fieldName = null;
-            Boolean oldAccessible = field.isAccessible();
-            field.setAccessible(true);
-
-            if (field.getAnnotation(Excluded.class) != null)
-                continue;
-
-            if (field.getAnnotation(SerialName.class) != null) {
-                fieldName = field.getAnnotation(SerialName.class).value();
-            }
-
-            if (fieldName == null)
-                fieldName = field.getName();
-
-            if (field.getAnnotation(Id.class) != null) {
-                content.put("id", String.valueOf(field.get(resource)));
-            } else if (field.get(resource) instanceof String) {
-                attributes.put(fieldName, String.valueOf(field.get(resource)));
-            } else if (field.get(resource) instanceof Integer) {
-                attributes.put(fieldName, field.getInt(resource));
-            } else if (field.get(resource) instanceof Double || field.get(resource) instanceof Float) {
-                attributes.put(fieldName, Double.parseDouble(String.valueOf(field.get(resource))));
-            } else if (field.get(resource) instanceof Long) {
-                attributes.put(fieldName, field.getLong(resource));
-            } else if (field.get(resource) instanceof Character) {
-                attributes.put(fieldName, Character.toString(field.getChar(resource)));
-            } else if (field.get(resource) instanceof Boolean) {
-                attributes.put(fieldName, field.getBoolean(resource));
-            } else if (field.get(resource) instanceof Date) {
-                attributes.put(fieldName, dateFormatToServer.format((Date) field.get(resource)).replace(" ", "T"));
-            }else if (field.get(resource) instanceof Resource) {
-                JSONObject relationshipNode = new JSONObject();
-                relationshipNode.put("data", getNodeAsRelationship(field.get(resource)));
-
-                relationship.put(fieldName, relationshipNode);
-            }
-
-            field.setAccessible(oldAccessible);
-        }
-
-        if (attributes.length() > 0)
-            content.put("attributes", attributes);
-
-        if (relationship.length() > 0)
-            content.put("relationships", relationship);
-
-        if (attributes.length() > 0 || relationship.length() > 0)
-            return content;
-
-        return null;
     }
 
     private List<Field> getFields(Class<?> type) {
