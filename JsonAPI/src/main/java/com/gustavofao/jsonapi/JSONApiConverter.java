@@ -398,12 +398,21 @@ public class JSONApiConverter {
 
     private Links linksFromJson(JSONObject linksJson) throws NoSuchFieldException, JSONException, IllegalAccessException {
         Links links = new Links();
+        List<Field> fields = getFields(links.getClass());
+        HashMap<String, Field> fieldsHash = new HashMap<>();
 
+        for (Field f : fields) {
+            if (f.getAnnotation(SerialName.class) != null) {
+                fieldsHash.put(f.getAnnotation(SerialName.class).value(), f);
+            } else {
+                fieldsHash.put(f.getName(), f);
+            }
+        }
         Iterator<String> it = linksJson.keys();
         while (it.hasNext()) {
             String next = it.next();
-            if (links.getClass().getDeclaredField(next) != null) {
-                Field currentField = links.getClass().getDeclaredField(next);
+            if (fieldsHash.containsKey(next)) {
+                Field currentField = fieldsHash.get(next);
 
                 Boolean oldAccessible = currentField.isAccessible();
                 currentField.setAccessible(true);

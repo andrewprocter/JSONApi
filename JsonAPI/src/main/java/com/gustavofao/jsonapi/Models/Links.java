@@ -1,10 +1,16 @@
 package com.gustavofao.jsonapi.Models;
 
+import com.gustavofao.jsonapi.Annotations.SerialName;
+
 public class Links {
     private String self;
+    @SerialName("first-page")
     private String first;
+    @SerialName("prev-page")
     private String prev;
+    @SerialName("next-page")
     private String next;
+    @SerialName("last-page")
     private String last;
     private String related;
 
