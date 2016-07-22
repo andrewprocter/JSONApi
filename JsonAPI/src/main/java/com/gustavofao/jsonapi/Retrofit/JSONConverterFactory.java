@@ -1,6 +1,7 @@
 package com.gustavofao.jsonapi.Retrofit;
 
 import com.gustavofao.jsonapi.JSONApiConverter;
+import com.gustavofao.jsonapi.Models.JSONApiObject;
 import com.gustavofao.jsonapi.Models.Resource;
 
 import java.lang.annotation.Annotation;
@@ -30,7 +31,11 @@ public class JSONConverterFactory extends Converter.Factory {
     @Override
     public Converter<ResponseBody, ?> responseBodyConverter(Type type, Annotation[] annotations,
                                                             Retrofit retrofit) {
-        return new JSONResponseBodyConverter<>(jsonApiConverter);
+        if (JSONApiObject.class.equals(type)) {
+            return new JSONResponseBodyConverter<>(jsonApiConverter);
+        } else {
+            return null;
+        }
     }
 
     @Override

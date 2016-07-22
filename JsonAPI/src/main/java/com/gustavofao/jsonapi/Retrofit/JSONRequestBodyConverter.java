@@ -1,6 +1,7 @@
 package com.gustavofao.jsonapi.Retrofit;
 
 import com.gustavofao.jsonapi.JSONApiConverter;
+import com.gustavofao.jsonapi.Models.JSONApiObject;
 import com.gustavofao.jsonapi.Models.Resource;
 
 import java.io.IOException;
@@ -23,6 +24,10 @@ public class JSONRequestBodyConverter<T> implements Converter<T, RequestBody> {
     public RequestBody convert(T value) throws IOException {
         if (value instanceof Resource)
             return RequestBody.create(MEDIA_TYPE, converter.toJson((Resource) value));
+        else if (value instanceof String)
+            return RequestBody.create(MEDIA_TYPE, (String) value);
+        else if (value instanceof RequestBody)
+            return (RequestBody) value;
         return RequestBody.create(MEDIA_TYPE, converter.toJson((List<Resource>) value));
     }
 }
