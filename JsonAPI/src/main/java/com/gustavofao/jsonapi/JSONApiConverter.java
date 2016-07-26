@@ -555,6 +555,8 @@ public class JSONApiConverter {
                                     relationshipNode.put("data", relationshipNodeData);
 
                                     relationship.put(fieldName, relationshipNode);
+                                } else {
+                                    array.put(listItem);
                                 }
                             } catch (Exception e) {
                                 e.printStackTrace();
