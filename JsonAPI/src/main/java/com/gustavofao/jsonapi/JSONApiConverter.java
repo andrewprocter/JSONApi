@@ -238,9 +238,9 @@ public class JSONApiConverter {
 
             while (it.hasNext()) {
                 String attr = it.next();
-                Object value = attributes.get(attr);
+                Object value = attributes.opt(attr);
 
-                if (fieldsHash.containsKey(attr)) {
+                if (value != null && fieldsHash.containsKey(attr)) {
                     Field currentField = fieldsHash.get(attr);
                     Boolean oldAccessible = currentField.isAccessible();
                     currentField.setAccessible(true);
@@ -313,8 +313,8 @@ public class JSONApiConverter {
                 String key = keys.next();
                 JSONObject eachRelation = relationships.getJSONObject(key);
 
-                Object data = eachRelation.get("data");
-                if (fieldsHash.containsKey(key)) {
+                Object data = eachRelation.opt("data");
+                if (data != null && fieldsHash.containsKey(key)) {
                     Field field = fieldsHash.get(key);
                     Boolean oldAccessible = field.isAccessible();
                     field.setAccessible(true);
