@@ -5,12 +5,13 @@ import com.gustavofao.jsonapi.Annotations.Id;
 import com.gustavofao.jsonapi.Annotations.Type;
 import com.gustavofao.jsonapi.Annotations.Types;
 
+import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class Resource {
+public class Resource implements Serializable {
 
     @Id
     private String id;

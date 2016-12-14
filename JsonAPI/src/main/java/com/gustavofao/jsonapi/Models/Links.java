@@ -2,7 +2,9 @@ package com.gustavofao.jsonapi.Models;
 
 import com.gustavofao.jsonapi.Annotations.SerialName;
 
-public class Links {
+import java.io.Serializable;
+
+public class Links implements Serializable{
     private String self;
     @SerialName("first-page")
     private String first;
