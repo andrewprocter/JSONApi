@@ -366,16 +366,18 @@ public class JSONApiConverter {
                                     String id = dataJson.getJSONObject(i).getString("id");
                                     String type = dataJson.getJSONObject(i).getString("type");
 
-                                    Resource fieldValue = classesIndex.get(type).newInstance();
+                                    if (classesIndex.get(type) != null) { // prevents parser from choking on classes it doesn't know about
+                                      Resource fieldValue = classesIndex.get(type).newInstance();
 
-                                    Field idField = Resource.class.getDeclaredField("id");
-                                    boolean oldAcessible = idField.isAccessible();
+                                      Field idField = Resource.class.getDeclaredField("id");
+                                      boolean oldAcessible = idField.isAccessible();
 
-                                    idField.setAccessible(true);
-                                    idField.set(fieldValue, id);
-                                    idField.setAccessible(oldAcessible);
+                                      idField.setAccessible(true);
+                                      idField.set(fieldValue, id);
+                                      idField.setAccessible(oldAcessible);
 
-                                    relationList.add(fieldValue);
+                                      relationList.add(fieldValue);
+                                    }
                                 } else {
                                     relationList.add(resourceFromJson(dataJson.getJSONObject(i), includes));
                                 }
